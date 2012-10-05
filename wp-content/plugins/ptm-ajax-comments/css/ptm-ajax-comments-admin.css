@@ -1,0 +1,8 @@
+.bold{font-weight:bold;}
+.divider{border-bottom:1px solid #e3e3e3; margin-top:15px; clear:both;height:1px;}
+/* Tabs */
+ul.optionsTabsNav li {display:inline;margin:0 5px 0 0;}
+ul.optionsTabsNav li a.selected, ul.optionsTabsNav li a:hover {color:#d54e21;}
+/* Icons */
+.icon-warning{background:transparent url(../images/exclamation.png) left no-repeat;padding:4px 0 4px 20px;}
+.icon-accept{background:transparent url(../images/accept.png) left no-repeat;padding:4px 0 4px 20px;}
