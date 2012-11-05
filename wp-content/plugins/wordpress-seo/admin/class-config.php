@@ -61,7 +61,7 @@ class WPSEO_Admin_Pages {
 	 */
 	function admin_sidebar() {
 		?>
-	<div class="postbox-container" style="width:25%;max-width:250px;">
+	<div class="postbox-container" style="width:25%;min-width:200px;max-width:350px;">
 		<div id="sidebar">
 			<?php
 			$this->postbox( 'sitereview', '<span class="promo">' . __( 'Improve your Site!', 'wordpress-seo' ) . '</span>', '<p>' . sprintf( __( 'Don\'t know where to start? Order a %1$swebsite review%2$s from Yoast!', 'wordpress-seo' ), '<a href="http://yoast.com/hire-me/website-review/#utm_source=wpadmin&utm_medium=sidebanner&utm_term=link&utm_campaign=wpseoplugin">', '</a>' ) . '</p>' . '<p><a class="button-primary" href="http://yoast.com/hire-me/website-review/#utm_source=wpadmin&utm_medium=sidebanner&utm_term=button&utm_campaign=wpseoplugin">' . __( 'Read more &raquo;', 'wordpress-seo' ) . '</a></p>' );
@@ -75,7 +75,8 @@ class WPSEO_Admin_Pages {
 				. '<ul>'
 				. '<li><a href="http://wordpress.org/extend/plugins/wordpress-seo/">' . __( 'Rate the plugin 5★ on WordPress.org', 'wordpress-seo' ) . '</a></li>'
 				. '<li><a href="http://yoast.com/wordpress/seo/#utm_source=wpadmin&utm_medium=sidebanner&utm_term=link&utm_campaign=wpseoplugin">' . __( 'Blog about it & link to the plugin page', 'wordpress-seo' ) . '</a></li>'
-				. '</ul>' );
+				. '<li><a href="http://amzn.com/w/CBV7CEOJJH98">' . __( 'Buy me something from my wishlist', 'wordpress-seo' ) . '</a></li>'
+			. '</ul>' );
 			$this->news();
 			?>
 			<br/><br/><br/>
@@ -123,7 +124,7 @@ class WPSEO_Admin_Pages {
 			</div>
 		</a>
 		<h2 id="wpseo-title"><?php _e( "Yoast WordPress SEO: ", 'wordpress-seo' ); echo $title; ?></h2>
-                                <div id="wpseo_content_top" class="postbox-container" style="width:75%;">
+                                <div id="wpseo_content_top" class="postbox-container" style="min-width:400px; max-width:600px; padding: 0 20px 0 0;">
 				<div class="metabox-holder">	
 					<div class="meta-box-sortables">
 		<?php
@@ -153,28 +154,6 @@ class WPSEO_Admin_Pages {
 			<?php $this->admin_sidebar(); ?>
 		</div>				
 		<?php
-	}
-
-	/**
-	 * Used for imports, this functions either copies $old_metakey into $new_metakey or just plain replaces $old_metakey with $new_metakey
-	 *
-	 * @param string $old_metakey The old name of the meta value.
-	 * @param string $new_metakey The new name of the meta value, usually the WP SEO name.
-	 * @param bool   $replace     Whether to replace or to copy the values.
-	 */
-	function replace_meta( $old_metakey, $new_metakey, $replace = false ) {
-		global $wpdb;
-		$oldies = $wpdb->get_results( "SELECT * FROM $wpdb->postmeta WHERE meta_key = '$old_metakey'" );
-		foreach ( $oldies as $old ) {
-			// Prevent inserting new meta values for posts that already have a value for that new meta key
-			$check = $wpdb->get_var( "SELECT count(*) FROM $wpdb->postmeta WHERE meta_key = '$new_metakey' AND post_id = " . $old->post_id );
-			if ( $check == 0 )
-				$wpdb->query( "INSERT INTO $wpdb->postmeta (post_id, meta_key, meta_value) VALUES (" . $old->post_id . ",'" . $new_metakey . "','" . addslashes( $old->meta_value ) . "')" );
-		}
-
-		if ( $replace ) {
-			$wpdb->query( "DELETE FROM $wpdb->postmeta WHERE meta_key = '$old_metakey'" );
-		}
 	}
 
 	/**
@@ -388,7 +367,7 @@ class WPSEO_Admin_Pages {
 	 *
 	 * @param string $var    The variable within the option to create the select for.
 	 * @param string $label  The label to show for the variable.
-	 * @param string $values The select options to choose from.
+	 * @param array  $values The select options to choose from.
 	 * @param string $option The option the variable belongs to.
 	 * @return string
 	 */
@@ -449,7 +428,7 @@ class WPSEO_Admin_Pages {
 	 * Create a Radio input field.
 	 *
 	 * @param string $var    The variable within the option to create the file upload field for.
-	 * @param string $values The radio options to choose from.
+	 * @param array  $values The radio options to choose from.
 	 * @param string $label  The label to show for the variable.
 	 * @param string $option The option the variable belongs to.
 	 * @return string

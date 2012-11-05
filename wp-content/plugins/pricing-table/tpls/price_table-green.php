@@ -4,6 +4,7 @@
     
 ?>
 <div style="clear: both;"></div>
+ 
 <link rel="stylesheet" type="text/css" href="<?php echo plugins_url(); ?>/pricing-table/tpls/css/style.css">
   
 
@@ -55,8 +56,13 @@
                 <ul>
                 
                 <?php foreach($value as $key1=>$value1){
-                    if( strtolower($key1)!="button url" && strtolower($key1)!="button text")
-                    echo "<li>".$value1."</li>";
+                    if( strtolower($key1)!="button url" && strtolower($key1)!="button text"){                      
+                        $value1 = explode("|",$value1);    
+                        if($value1[1]!='')
+                        echo "<li><a href='#' class='wppttip' title='{$value1[1]}'>".$value1[0]."</a></li>";                                         
+                        else
+                        echo "<li>".$value1[0]."</li>";                                         
+                    }
                 }
                 ?>
                
@@ -87,14 +93,12 @@
  
 
   <script language="JavaScript">
-  <!--
- 
+   
         var v = jQuery('.col1').length;
        
         var cw = (95/v);
         
         jQuery('.col1').css('width',cw+'%');
         
-  
-  //-->
+           
   </script>

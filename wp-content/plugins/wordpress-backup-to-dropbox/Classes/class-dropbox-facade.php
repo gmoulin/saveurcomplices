@@ -18,9 +18,7 @@
  *          along with this program; if not, write to the Free Software
  *          Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110, USA.
  */
-
 class Dropbox_Facade {
-
 	const RETRY_COUNT = 5;
 
 	const CONSUMER_KEY = 'u1i8xniul59ggxs';
@@ -66,34 +64,35 @@ class Dropbox_Facade {
 		if (!$this->tokens['access']) {
 			return false;
 		}
-		try {
-			$info = $this->get_account_info();
-			if (isset($info['error'])) {
-				$this->unlink_account();
-				return false;
-			} else {
-				return true;
-			}
-		} catch (Dropbox_Exception_Forbidden $e) {
+
+		$info = $this->get_account_info();
+		if (isset($info['error'])) {
 			$this->unlink_account();
 			return false;
+		} else {
+			return true;
 		}
 	}
 
 	public function get_authorize_url() {
-		try {
-			$oauth = new Dropbox_OAuth_PEAR(self::CONSUMER_KEY, self::CONSUMER_SECRET);
-			$this->tokens['request'] = $oauth->getRequestToken();
-			$this->save_tokens();
-			return $oauth->getAuthorizeUrl();
-		} catch (HTTP_OAuth_Consumer_Exception_InvalidResponse $e) {
-			$this->unlink_account();
-			throw $e;
-		}
+		$oauth = new Dropbox_OAuth_PEAR(self::CONSUMER_KEY, self::CONSUMER_SECRET);
+		$this->tokens['request'] = $oauth->getRequestToken();
+		$this->save_tokens();
+		return $oauth->getAuthorizeUrl();
 	}
 
 	public function get_account_info() {
-		return $this->dropbox->getAccountInfo();
+		$retries = 0;
+		$e = null;
+		while ($retries < self::RETRY_COUNT) {
+			try {
+				return $this->dropbox->getAccountInfo();
+			} catch (Exception $e) {
+				$retries++;
+				sleep(BACKUP_TO_DROPBOX_ERROR_TIMEOUT);
+			}
+		}
+		throw $e;
 	}
 
 	private function save_tokens() {

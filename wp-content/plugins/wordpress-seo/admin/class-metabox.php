@@ -27,7 +27,7 @@ class WPSEO_Metabox {
 	 */
 	function __construct() {
 		if ( !class_exists( 'Yoast_TextStatistics' ) && apply_filters( 'wpseo_use_page_analysis', true ) === true )
-			require WPSEO_PATH . "/admin/TextStatistics.php";
+			require_once( WPSEO_PATH . "/admin/TextStatistics.php" );
 
 		add_action( 'add_meta_boxes', array( $this, 'add_meta_box' ) );
 		add_action( 'admin_print_styles-post-new.php', array( $this, 'enqueue' ) );
@@ -163,9 +163,8 @@ class WPSEO_Metabox {
 
 		$options = get_wpseo_options();
 
-		$use_date = apply_filters( 'wpseo_show_date_in_snippet_preview', true, $post );
-		$date     = '';
-		if ( $post->post_type == 'post' && $use_date ) {
+		$date = '';
+		if ( isset( $options['showdate-' . $post->post_type] ) && $options['showdate-' . $post->post_type] ) {
 			$date = $this->get_post_date( $post );
 
 			$this->meta_length        = $this->meta_length - ( strlen( $date ) + 5 );
@@ -581,9 +580,10 @@ class WPSEO_Metabox {
 			global $post;
 		}
 
-		// TODO: make this configurable per post type.
+		$options = get_wpseo_options();
+
 		$date = '';
-		if ( $post->post_type == 'post' && apply_filters( 'wpseo_show_date_in_snippet_preview', true, $post ) )
+		if ( isset( $options['showdate-' . $post->post_type] ) && $options['showdate-' . $post->post_type] )
 			$date = $this->get_post_date( $post );
 
 		$title = wpseo_get_value( 'title' );
@@ -598,14 +598,79 @@ class WPSEO_Metabox {
 		else
 			$datestr = '';
 		$content = '<div id="wpseosnippet">
-			<a class="title" href="#">' . $title . '</a><br/>
-		<a href="#" style="font-size: 13px; color: #282; line-height: 15px;" class="url">' . str_replace( 'http://', '', get_bloginfo( 'url' ) ) . '/' . $slug . '/</a> - <a href="#" class="util">Cached</a>
-			<p class="desc" style="font-size: 13px; color: #000; line-height: 15px;">' . $datestr . '<span class="content">' . $desc . '</span></p>
-		</div>';
+			<a class="title" href="#">' . $title . '</a><br/>';
+
+//		if ( isset( $options['breadcrumbs-enable'] ) && $options['breadcrumbs-enable'] == 'on' ) {
+//			require_once WPSEO_PATH . '/frontend/class-breadcrumbs.php';
+//			$content .= '<span href="#" style="font-size: 13px; color: #282; line-height: 15px;" class="breadcrumb">' . yoast_breadcrumb('','',false) . '</span>';
+//		} else {
+			$content .= '<a href="#" style="font-size: 13px; color: #282; line-height: 15px;" class="url">' . str_replace( 'http://', '', get_bloginfo( 'url' ) ) . '/' . $slug . '/</a>';
+//		}
+//		if ( $gplus = $this->get_gplus_data( $post->post_author ) ) {
+//			//		$content .= '<a href="https://profiles.google.com/' . $gplus->id . '" style="text-decoration:none;line-height:15px;font-size:13px;font-family:arial,sans-serif">';
+//			$content .= '<div style="margin-top: 5px; position: relative;"><img style="float: left; margin-right:8px;" src="' . str_replace( 'sz=50', 'sz=44', $gplus->image->url ) . '"/>';
+//			$content .= '<p class="desc" style="width: 460px; float: left; font-size: 13px; color: #000; line-height: 15px;">';
+//			$content .= '<span style="color: #666;">by ' . $gplus->displayName . ' - in 12,345 circles - More by ' . $gplus->displayName . '</span><br/>';
+//			$content .= $datestr . '<span class="content">' . $desc . '</span></p>';
+//			$content .= '<div style="clear:both;"></div>';
+////		$content .= '<div class="f" style="display:inline;margin-top:-10px;padding:2px 0;color:#666;font-size:13px">by ' . $gplus->displayName . ' - More by ' . $gplus->displayName . '</div></a>';
+////		$content .= '</div>';
+//
+////		echo '<pre>'.print_r($gplus,1).'</pre>';
+//
+//		} else {
+			$content .= '<p class="desc" style="font-size: 13px; color: #000; line-height: 15px;">' . $datestr . '<span class="content">' . $desc . '</span></p>';
+//		}
+		$content .= '</div>';
+
+//		$content .= '<pre>' . print_r( $gplus, 1 ) . '</pre>';
 
 		$content = apply_filters( 'wpseo_snippet', $content, $post, compact( 'title', 'desc', 'date', 'slug' ) );
 
 		return $content;
+	}
+
+	/**
+	 * Grab a users G+ data
+	 *
+	 * @since 1.2.9
+	 *
+	 * @param int $user_id The ID of the user to retrieve the data for.
+	 *
+	 * @return object $gplus An object with the users Google+ data.
+	 */
+	function get_gplus_data( $user_id ) {
+		if ( $gplus = get_transient( 'gplus_' . $user_id ) )
+			return $gplus;
+
+		$gplus_profile = get_the_author_meta( 'googleplus', $user_id );
+
+		if ( empty( $gplus_profile ) )
+			return false;
+		if ( preg_match( '|u/0/([^/]+)/|', $gplus_profile, $match ) )
+			$gplus_id = $match[1];
+		else if ( preg_match( '|\.com/(\d+)|', $gplus_profile, $match ) )
+			$gplus_id = $match[1];
+		else
+			return false;
+
+		$args = array(
+			'headers' => array(
+				'Referer' => 'http://yoast.com/wp-admin/',
+			),
+		);
+
+		$resp = wp_remote_get( 'https://www.googleapis.com/plus/v1/people/' . $gplus_id . '?key=AIzaSyBLYmCW10gzW63ob8NYIPTneph1arsxqWs', $args );
+		if ( !is_wp_error( $resp ) ) {
+			$gplus = json_decode( $resp['body'] );
+
+			set_transient( 'gplus_' . $user_id, $gplus, ( 7 * 24 * 60 * 60 ) );
+
+			return $gplus;
+		} else {
+			return false;
+		}
+
 	}
 
 	/**
@@ -1357,10 +1422,11 @@ class WPSEO_Metabox {
 	 * @return array The updated images array.
 	 */
 	function get_images_alt_text( $post, $imgs ) {
-		preg_match_all( '/<img [^>]+ alt=(["\'])([^\\1]+)\\1[^>]+>/im', $post->post_content, $matches );
+		preg_match_all( '/<img[^>]+>/im', $post->post_content, $matches );
 		$imgs['alts'] = array();
-		foreach ( $matches[2] as $alt ) {
-			$imgs['alts'][] = $this->strtolower_utf8( $alt );
+		foreach ( $matches[0] as $img ) {
+			preg_match( '|alt=(["\'])([^"\']+)["\']|', $img, $alt );
+			$imgs['alts'][] = $this->strtolower_utf8( $alt[2] );
 		}
 		if ( preg_match_all( '/\[gallery/', $post->post_content, $matches ) ) {
 			$attachments = get_children( array( 'post_parent' => $post->ID, 'post_status' => 'inherit', 'post_type' => 'attachment', 'post_mime_type' => 'image', 'fields' => 'ids' ) );
@@ -1508,7 +1574,6 @@ class WPSEO_Metabox {
 		$fleschurl   = '<a href="http://en.wikipedia.org/wiki/Flesch-Kincaid_readability_test#Flesch_Reading_Ease">' . __( 'Flesch Reading Ease', 'wordpress-seo' ) . '</a>';
 		$scoreFlesch = __( "The copy scores %s in the %s test, which is considered %s to read. %s", 'wordpress-seo' );
 
-
 		// Replace images with their alt tags, then strip all tags
 		$body = preg_replace( '/(<img([^>]+)?alt="([^"]+)"([^>]+)>)/', '$3', $body );
 		$body = strip_tags( $body );
@@ -1529,20 +1594,23 @@ class WPSEO_Metabox {
 
 		$body = $this->strtolower_utf8( $body );
 
-		// Keyword Density check
-		$keywordDensity = 0;
-		if ( $wordCount > 0 ) {
-			$keywordCount     = preg_match_all( "/" . preg_quote( $job["keyword"], '/' ) . "/msiU", $body, $res );
-			$keywordWordCount = str_word_count( $job["keyword"] );
-			if ( $keywordCount > 0 && $keywordWordCount > 0 )
-				$keywordDensity = number_format( ( ( $keywordCount / ( $wordCount - ( ( $keywordWordCount - 1 ) * $keywordWordCount ) ) ) * 100 ), 2 );
-
-			if ( $keywordDensity < 1 ) {
-				$this->save_score_result( $results, 4, sprintf( $scoreKeywordDensityLow, $keywordDensity, $keywordCount ) );
-			} else if ( $keywordDensity > 4.5 ) {
-				$this->save_score_result( $results, -50, sprintf( $scoreKeywordDensityHigh, $keywordDensity, $keywordCount ) );
-			} else {
-				$this->save_score_result( $results, 9, sprintf( $scoreKeywordDensityGood, $keywordDensity, $keywordCount ) );
+		$keywordWordCount = str_word_count( $job["keyword"] );
+		if ( $keywordWordCount > 10 ) {
+			$this->save_score_result( $results, 0, __( 'Your keyphrase is over 10 words, a keyphrase should be shorter and there can be only one keyphrase.', 'wordpress-seo' ) );
+		} else {
+			// Keyword Density check
+			$keywordDensity = 0;
+			if ( $wordCount > 100 ) {
+				$keywordCount = preg_match_all( "/" . preg_quote( $job["keyword"], '/' ) . "/msiU", $body, $res );
+				if ( $keywordCount > 0 && $keywordWordCount > 0 )
+					$keywordDensity = number_format( ( ( $keywordCount / ( $wordCount - ( ( $keywordWordCount - 1 ) * $keywordWordCount ) ) ) * 100 ), 2 );
+				if ( $keywordDensity < 1 ) {
+					$this->save_score_result( $results, 4, sprintf( $scoreKeywordDensityLow, $keywordDensity, $keywordCount ) );
+				} else if ( $keywordDensity > 4.5 ) {
+					$this->save_score_result( $results, -50, sprintf( $scoreKeywordDensityHigh, $keywordDensity, $keywordCount ) );
+				} else {
+					$this->save_score_result( $results, 9, sprintf( $scoreKeywordDensityGood, $keywordDensity, $keywordCount ) );
+				}
 			}
 		}
 
@@ -1601,6 +1669,7 @@ class WPSEO_Metabox {
 	function get_body( $post ) {
 		// Strip shortcodes, for obvious reasons
 		$origHtml = wpseo_strip_shortcode( $post->post_content );
+
 		if ( trim( $origHtml ) == '' )
 			return '';
 
@@ -1638,7 +1707,7 @@ class WPSEO_Metabox {
 	 * @return string
 	 */
 	function get_first_paragraph( $post ) {
-		// To determine the first paragraph we first need to autop the content, then match the first paragraph and return.		
+		// To determine the first paragraph we first need to autop the content, then match the first paragraph and return.
 		$res = preg_match( '/<p>(.*)<\/p>/', wpautop( $post->post_content ), $matches );
 		if ( $res )
 			return $matches[1];

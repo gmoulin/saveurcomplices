@@ -3,10 +3,8 @@
     $featured=  get_post_meta($pid, 'pricing_table_opt_feature',true);  
     
 ?>
+
     <style> 
-   
-  
-        
     #pricing-table {
         margin: 100px auto 50px auto;
         text-align: center;
@@ -198,8 +196,15 @@
         <ul>
             
             <?php foreach($value as $key1=>$value1){
-                    if( strtolower($key1)!="button url" && strtolower($key1)!="button text" && strtolower($key1)!="price")
-                    echo "<li><b>".$value1."</b> $key1</li>";
+                    if(strtolower($key1)=='detail')
+                    echo "<li><b>".$value1."</b></li>";
+                    else if( strtolower($key1)!="button url" && strtolower($key1)!="button text" && strtolower($key1)!="price"){
+                    $value1 = explode("|",$value1);    
+                    if($value1[1]!='')
+                    echo "<li><b><a href='#' title='{$value1[1]}'>".$value1[0]."</a></b> $key1</li>";
+                    else
+                    echo "<li><b>".$value1[0]."</b> $key1</li>";
+                    }
                 }
             ?>
            
@@ -210,6 +215,7 @@
    
 
 </div>
+
 
 <!-- price table designed by red-team-design.com -->
 
